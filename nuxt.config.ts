@@ -10,6 +10,10 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@pinia/nuxt',
   ],
+
+  build: {
+    transpile: ['chart.js', 'vue-chartjs'],
+  },
 colorMode: false,
   runtimeConfig: {
     public: {

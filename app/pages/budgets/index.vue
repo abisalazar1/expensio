@@ -139,158 +139,13 @@
 
       <!-- Budget cards grid -->
       <div v-if="filteredBudgets.length" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div
+        <BudgetsBudgetCard
           v-for="budget in filteredBudgets"
           :key="budget.id"
-          class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden group"
-        >
-          <!-- Status color stripe -->
-          <div :class="['h-1 w-full transition-colors', budgetStripeClass(budget)]" />
-
-          <!-- Card body -->
-          <div class="p-5">
-
-            <!-- Row 1: icon + name + badges + action buttons -->
-            <div class="flex items-start justify-between gap-3 mb-4">
-              <div class="flex items-center gap-3">
-                <div
-                  :class="[
-                    'w-10 h-10 rounded-xl flex items-center justify-center border shrink-0',
-                    colorMap[budget.color].bg,
-                  ]"
-                >
-                  <UIcon :name="budget.icon" :class="['text-lg', colorMap[budget.color].icon]" />
-                </div>
-                <div>
-                  <p class="text-sm font-bold text-slate-900">{{ budget.name }}</p>
-                  <div class="flex items-center gap-1.5 mt-0.5">
-                    <UBadge :color="statusBadgeColor(budget)" variant="subtle" size="xs">
-                      {{ statusLabel(budget) }}
-                    </UBadge>
-                    <span
-                      v-if="budget.rollover"
-                      class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200"
-                    >
-                      Rollover
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Edit + delete (revealed on hover) -->
-              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                <button
-                  type="button"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all"
-                  aria-label="Edit budget"
-                  @click="openEditModal(budget)"
-                >
-                  <UIcon name="i-heroicons-pencil" class="text-sm" />
-                </button>
-                <button
-                  type="button"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all"
-                  aria-label="Delete budget"
-                  @click="deleteConfirmId = budget.id"
-                >
-                  <UIcon name="i-heroicons-trash" class="text-sm" />
-                </button>
-              </div>
-            </div>
-
-            <!-- Row 2: spent amount + sparkline -->
-            <div class="flex items-end justify-between mb-3">
-              <div>
-                <div class="flex items-baseline gap-1.5">
-                  <span :class="['text-2xl font-extrabold tabular-nums', budgetAmountColor(budget)]">
-                    {{ formatCurrency(budget.spent) }}
-                  </span>
-                  <span class="text-sm text-slate-400 font-medium">
-                    / {{ formatCurrency(budget.limit) }}
-                  </span>
-                </div>
-                <p class="text-xs text-slate-400 mt-0.5">
-                  {{ formatCurrency(Math.max(budget.limit - budget.spent, 0)) }} remaining
-                </p>
-              </div>
-
-              <!-- 3-month sparkline (inline SVG, no library) -->
-              <div class="flex flex-col items-end gap-1 shrink-0">
-                <span class="text-[10px] text-slate-400 font-medium">3-month trend</span>
-                <svg width="52" height="24">
-                  <rect
-                    v-for="(histSpent, i) in budget.history"
-                    :key="i"
-                    :x="i * 18"
-                    :y="24 - Math.min(Math.round((histSpent / budget.limit) * 24), 24)"
-                    width="14"
-                    :height="Math.min(Math.round((histSpent / budget.limit) * 24), 24)"
-                    rx="3"
-                    :fill="sparklineColor(histSpent, budget.limit)"
-                    opacity="0.85"
-                  />
-                </svg>
-              </div>
-            </div>
-
-            <!-- Row 3: progress bar -->
-            <div class="mb-3">
-              <div class="flex items-center justify-between mb-1.5">
-                <span class="text-xs text-slate-500 font-medium">
-                  {{ Math.round(budgetPct(budget)) }}% used
-                </span>
-                <span class="text-xs font-medium" :class="budgetAmountColor(budget)">
-                  {{ alertThresholdLabel(budget) }}
-                </span>
-              </div>
-              <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  class="h-full rounded-full transition-all duration-500"
-                  :class="budgetBarColorClass(budget)"
-                  :style="{ width: `${budgetPct(budget)}%` }"
-                />
-              </div>
-            </div>
-
-            <!-- Row 4: projected month-end warning -->
-            <div
-              v-if="projectedOverage(budget)"
-              class="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-lg border border-amber-100"
-            >
-              <UIcon name="i-heroicons-exclamation-triangle" class="text-amber-500 text-sm shrink-0" />
-              <p class="text-xs text-amber-700 font-medium">
-                Projected: <strong>{{ formatCurrency(projectedMonthEnd(budget)) }}</strong>
-                — {{ formatCurrency(projectedMonthEnd(budget) - budget.limit) }} over limit at this rate
-              </p>
-            </div>
-
-          </div>
-
-          <!-- Delete confirmation panel (outside padded area, full-width) -->
-          <div
-            v-if="deleteConfirmId === budget.id"
-            class="flex items-center justify-between gap-3 px-5 py-3 bg-rose-50 border-t border-rose-100"
-          >
-            <p class="text-xs font-medium text-rose-700">Delete this budget permanently?</p>
-            <div class="flex gap-2 shrink-0">
-              <button
-                type="button"
-                class="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all"
-                @click="deleteConfirmId = null"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                class="px-3 py-1.5 text-xs font-semibold text-white bg-rose-500 rounded-lg hover:bg-rose-600 transition-all"
-                @click="deleteBudget(budget.id)"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-
-        </div>
+          :budget="budget"
+          @edit="openEditModal"
+          @delete="deleteBudget"
+        />
       </div>
 
       <!-- Empty state -->
@@ -329,82 +184,11 @@
     <!-- ──────────────────────────────────────────────────────────────────────
          D. BUDGET VS ACTUAL CHART
     ─────────────────────────────────────────────────────────────────────── -->
-    <!-- TODO: GET /api/budgets/comparison -->
-    <div v-if="budgets.length" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 mb-6">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h2 class="text-base font-bold text-slate-900">Budget vs Actual</h2>
-          <p class="text-sm text-slate-400 mt-0.5">All categories for {{ currentMonthLabel }}</p>
-        </div>
-        <div class="flex items-center gap-4 text-xs text-slate-500">
-          <span class="flex items-center gap-1.5">
-            <span class="w-3 h-2.5 rounded-sm bg-slate-300 inline-block" />
-            Budget limit
-          </span>
-          <span class="flex items-center gap-1.5">
-            <span class="w-3 h-2.5 rounded-sm bg-emerald-400 inline-block" />
-            Amount spent
-          </span>
-        </div>
-      </div>
-
-      <div class="space-y-5">
-        <div v-for="budget in sortedByLimit" :key="budget.id" class="flex items-center gap-4">
-          <!-- Category label -->
-          <div class="w-32 shrink-0 flex items-center gap-2">
-            <UIcon :name="budget.icon" :class="['text-sm shrink-0', colorMap[budget.color].icon]" />
-            <span class="text-xs font-medium text-slate-600 truncate">{{ budget.name }}</span>
-          </div>
-
-          <!-- Bar tracks -->
-          <div class="flex-1 space-y-1.5">
-            <!-- Budget limit bar -->
-            <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                class="h-full bg-slate-300 rounded-full transition-all duration-500"
-                :style="{ width: `${(budget.limit / maxBudgetLimit) * 100}%` }"
-              />
-            </div>
-            <!-- Spent bar -->
-            <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                class="h-full rounded-full transition-all duration-500"
-                :class="budgetBarColorClass(budget)"
-                :style="{ width: `${Math.min((budget.spent / maxBudgetLimit) * 100, 100)}%` }"
-              />
-            </div>
-          </div>
-
-          <!-- Amounts -->
-          <div class="w-24 shrink-0 text-right">
-            <p class="text-xs font-semibold text-slate-700 tabular-nums">{{ formatCurrency(budget.spent) }}</p>
-            <p class="text-[10px] text-slate-400 tabular-nums">/ {{ formatCurrency(budget.limit) }}</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Overall totals row -->
-      <div class="mt-6 pt-5 border-t border-slate-100 flex items-center gap-4">
-        <div class="w-32 shrink-0">
-          <span class="text-xs font-bold text-slate-700">Overall</span>
-        </div>
-        <div class="flex-1">
-          <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              :class="overallBarColor"
-              :style="{ width: `${Math.min(overallPct * 100, 100)}%` }"
-            />
-          </div>
-        </div>
-        <div class="w-24 shrink-0 text-right">
-          <p class="text-xs font-semibold text-slate-700">{{ Math.round(overallPct * 100) }}% used</p>
-          <p class="text-[10px] text-slate-400 tabular-nums">
-            {{ formatCurrency(totalSpent) }} / {{ formatCurrency(totalBudgeted) }}
-          </p>
-        </div>
-      </div>
-    </div>
+    <BudgetsBudgetVsActualChart
+      v-if="budgets.length"
+      :budgets="budgets"
+      :month-label="currentMonthLabel"
+    />
 
     <!-- ──────────────────────────────────────────────────────────────────────
          E. MONTHLY HISTORY (collapsible)
@@ -793,10 +577,9 @@ const budgets = ref<Budget[]>([
 // ── Reactive page state ───────────────────────────────────────────────────────
 
 const activePeriod    = ref<BudgetPeriod>('monthly')
-const activeFilter    = ref('all')
-const copySuccess     = ref(false)
-const showHistory     = ref(false)
-const deleteConfirmId = ref<number | null>(null)
+const activeFilter = ref('all')
+const copySuccess  = ref(false)
+const showHistory  = ref(false)
 
 // ── Modal state ───────────────────────────────────────────────────────────────
 
@@ -820,17 +603,10 @@ const totalBudgeted   = computed(() => budgets.value.reduce((s, b) => s + b.limi
 const totalSpent      = computed(() => budgets.value.reduce((s, b) => s + b.spent, 0))
 const totalRemaining  = computed(() => totalBudgeted.value - totalSpent.value)
 const overBudgetCount = computed(() => budgets.value.filter(b => b.spent > b.limit).length)
-const overallPct      = computed(() => totalBudgeted.value > 0 ? totalSpent.value / totalBudgeted.value : 0)
-const maxBudgetLimit  = computed(() => Math.max(...budgets.value.map(b => b.limit), 1))
-
 const filteredBudgets = computed(() => {
   if (activeFilter.value === 'all') return budgets.value
   return budgets.value.filter(b => budgetStatus(b) === activeFilter.value)
 })
-
-const sortedByLimit = computed(() =>
-  [...budgets.value].sort((a, b) => b.limit - a.limit),
-)
 
 const availableCategories = computed(() => {
   if (editingBudget.value) return ALL_CATEGORIES
@@ -862,73 +638,6 @@ function budgetStatus(b: Budget): BudgetStatus {
   return 'on-track'
 }
 
-function budgetPct(b: Budget): number {
-  return Math.min((b.spent / b.limit) * 100, 100)
-}
-
-function budgetBarColorClass(b: Budget): string {
-  const s = budgetStatus(b)
-  if (s === 'over')     return 'bg-rose-500'
-  if (s === 'heads-up') return 'bg-amber-500'
-  return colorMap[b.color].bar
-}
-
-function budgetStripeClass(b: Budget): string {
-  const s = budgetStatus(b)
-  if (s === 'over')     return 'bg-rose-400'
-  if (s === 'heads-up') return 'bg-amber-400'
-  return colorMap[b.color].bar
-}
-
-function budgetAmountColor(b: Budget): string {
-  const s = budgetStatus(b)
-  if (s === 'over')     return 'text-rose-600'
-  if (s === 'heads-up') return 'text-amber-600'
-  return 'text-slate-800'
-}
-
-function statusBadgeColor(b: Budget): 'error' | 'warning' | 'primary' {
-  const s = budgetStatus(b)
-  if (s === 'over')     return 'error'
-  if (s === 'heads-up') return 'warning'
-  return 'primary'
-}
-
-function statusLabel(b: Budget): string {
-  const s = budgetStatus(b)
-  if (s === 'over')     return 'Over Budget'
-  if (s === 'heads-up') return 'Heads Up'
-  return 'On Track'
-}
-
-function alertThresholdLabel(b: Budget): string {
-  const s = budgetStatus(b)
-  if (s === 'over') return `$${(b.spent - b.limit).toFixed(0)} over`
-  return `Alert at ${Math.round(b.alertThreshold * 100)}%`
-}
-
-// ── Projected month-end ───────────────────────────────────────────────────────
-
-function projectedMonthEnd(b: Budget): number {
-  const day = new Date().getDate()
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-  return Math.round((b.spent / day) * daysInMonth)
-}
-
-function projectedOverage(b: Budget): boolean {
-  if (b.spent >= b.limit) return false  // already over, show the badge instead
-  return projectedMonthEnd(b) > b.limit
-}
-
-// ── Sparkline ─────────────────────────────────────────────────────────────────
-
-function sparklineColor(spent: number, limit: number): string {
-  const pct = spent / limit
-  if (pct >= 1)   return '#f43f5e'  // rose-500
-  if (pct >= 0.8) return '#f59e0b'  // amber-500
-  return '#10b981'                   // emerald-500
-}
-
 // ── History dot ───────────────────────────────────────────────────────────────
 
 function historyDotClass(spent: number, limit: number): string {
@@ -955,11 +664,6 @@ const statusFilterLabel = computed(() =>
   STATUS_FILTERS.find(f => f.value === activeFilter.value)?.label ?? activeFilter.value,
 )
 
-const overallBarColor = computed(() => {
-  if (overallPct.value >= 1)   return 'bg-rose-500'
-  if (overallPct.value >= 0.8) return 'bg-amber-500'
-  return 'bg-emerald-500'
-})
 
 // ── Modal operations ──────────────────────────────────────────────────────────
 
@@ -1045,7 +749,6 @@ async function saveBudget(): Promise<void> {
 
 function deleteBudget(id: number): void {
   budgets.value = budgets.value.filter(b => b.id !== id)
-  deleteConfirmId.value = null
   // TODO: DELETE /api/budgets/:id
 }
 
