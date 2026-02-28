@@ -75,13 +75,18 @@
           />
         </UFormField>
 
-        <!-- Terms -->
-        <p class="text-xs text-slate-400 leading-relaxed">
-          By creating an account you agree to our
-          <a href="#" class="text-emerald-600 hover:underline">Terms of Service</a>
-          and
-          <a href="#" class="text-emerald-600 hover:underline">Privacy Policy</a>.
-        </p>
+        <!-- Terms acceptance -->
+        <UFormField name="termsAccepted">
+          <div class="flex items-start gap-3">
+            <UCheckbox v-model="form.termsAccepted" class="mt-0.5" />
+            <p class="text-xs text-slate-500 leading-relaxed">
+              I agree to the
+              <a href="#" class="text-emerald-600 hover:underline">Terms of Service</a>
+              and
+              <a href="#" class="text-emerald-600 hover:underline">Privacy Policy</a>.
+            </p>
+          </div>
+        </UFormField>
 
         <!-- Error alert -->
         <UAlert
@@ -121,6 +126,7 @@
 
 <script setup lang="ts">
 import type { FormError, FormSubmitEvent } from '@nuxt/ui'
+import type { ApiClass } from '~/plugins/axios'
 
 definePageMeta({ layout: 'auth' })
 
@@ -134,6 +140,7 @@ interface RegisterForm {
   email: string
   password: string
   confirmPassword: string
+  termsAccepted: boolean
 }
 
 const form = reactive<RegisterForm>({
@@ -141,7 +148,11 @@ const form = reactive<RegisterForm>({
   email: '',
   password: '',
   confirmPassword: '',
+  termsAccepted: false,
 })
+
+const { $api } = useNuxtApp() as unknown as { $api: ApiClass }
+const authStore = useAuthStore()
 
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
@@ -191,28 +202,29 @@ const validate = (state: RegisterForm): FormError[] => {
     errors.push({ name: 'confirmPassword', message: 'Passwords do not match.' })
   }
 
+  if (!state.termsAccepted) {
+    errors.push({ name: 'termsAccepted', message: 'You must accept the terms to continue.' })
+  }
+
   return errors
 }
 
-const onSubmit = async (event: FormSubmitEvent<RegisterForm>) => {
+const onSubmit = async (_event: FormSubmitEvent<RegisterForm>) => {
   errorMessage.value = null
   isLoading.value = true
-
   try {
-    // TODO: replace with real API call via $api
-    console.log('[register] form submitted:', {
-      name: event.data.name,
-      email: event.data.email,
-      // never log passwords in production
+    const data = await $api.post<Record<string, any>>('register', {
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      password_confirmation: form.confirmPassword,
+      terms_accepted: form.termsAccepted,
     })
 
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    // TODO: navigate to dashboard or onboarding after successful registration
-    // await navigateTo('/dashboard')
-  } catch {
-    errorMessage.value = 'Something went wrong. Please try again.'
+    await authStore.setUser(data)
+    await navigateTo('/dashboard')
+  } catch (error: any) {
+    errorMessage.value = error?.data?.message || 'Registration failed. Please try again.'
   } finally {
     isLoading.value = false
   }

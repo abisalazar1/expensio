@@ -18,8 +18,12 @@
     <!-- Minimal footer -->
     <footer class="px-6 py-4 text-center">
       <p class="text-xs text-slate-400">
-        &copy; {{ new Date().getFullYear() }} Expensio. All rights reserved.
+        &copy; {{ currentYear }} Expensio. All rights reserved.
       </p>
     </footer>
   </div>
 </template>
+
+<script setup>
+const currentYear = useState('currentYear', () => new Date().getFullYear())
+</script>
